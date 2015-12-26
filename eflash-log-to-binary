@@ -1,0 +1,11 @@
+#!/usr/bin/python
+import fileinput
+import re
+import binascii
+import sys
+
+pattern = re.compile(r"[0-9,a-f]{6}:\s([0-9,A-F]+)")
+
+for line in fileinput.input():
+	for match in pattern.finditer(line):
+		sys.stdout.write(binascii.unhexlify(match.group(1)))
