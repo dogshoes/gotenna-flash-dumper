@@ -1,0 +1,110 @@
+#!/usr/bin/python
+
+import serial
+import sys
+import time
+import argparse
+import re
+from datetime import timedelta
+
+def check_for_ongoing_process(port):
+	bytes = 0
+	end = time.time() + 5
+
+	# We can check for ongoing progress by seeing if we see more than 2k of bytes in five seconds.
+	while time.time() < end and bytes <= 2048:
+		read = port.read(1)
+		bytes = bytes + len(read)
+	
+	return bytes > 2048
+
+def read_eflash_output(port, progress, output):
+	lastreadcounter = 10
+	lastblock = 0
+	blockpattern = re.compile(r"([0-9,a-f]{6}):\s")
+
+	# Initial progress: 0%
+	progress(0, 100)
+
+	port.write("\nread_eflash\n")
+
+	while True:
+		# Read a block of data up to 2048 bytes, or up to the one second timeout.
+		block = port.read(2048)
+		# Write that block of data to our output file.
+		output.write(block)
+
+		# Keep the serial connection alive to the goTenna.  Otherwise "USB Asleep".
+		port.write("\r\n")
+
+		# The read_eflash command will send heaps of data our way.
+		# If we end up with a block smaller than expected we likely ran in to our timeout.
+		if block.__len__() < 2048:
+			lastreadcounter = lastreadcounter - 1
+
+		# If we're all out of timeout chances, abort reading since we don't have any more eflash to read.
+		if lastreadcounter == 0:
+			break;
+
+		# Attempt to find a block number in the output.
+		m = blockpattern.match(block)
+		if m:
+			lastblock = int(m.group(1), 16)
+			# 2093040 (0x1feff0) is what I've observed the last block to be dumped.
+			progress(lastblock, 2093040)
+
+def dump_eflash(serialport, logout, progress, output):
+	port = serial.Serial(serialport, 115200, timeout=1)
+
+	logout.write("Connected to serial port {0}.\n".format(serialport))
+	logout.write("Checking for any ongoing processes on the goTenna... Please wait 5 seconds.\n")
+
+	if check_for_ongoing_process(port):
+		port.close()
+		message = "The goTenna currently busy.  Cannot dump eflash.  Turn the goTenna off and on again."
+		logout.write(message + "\n")
+		raise Exception(message)
+
+
+	logout.write("The goTenna is available and ready.  Sit back and relax, this will take a bit of time.\n")
+	logout.write("Dumping eflash.  Do not disconnect or turn the goTenna off!\n")
+
+	starttime = time.time()
+
+	read_eflash_output(port, progress, output)
+	
+	endtime = time.time()
+
+	# The progress_cli doesn't add \n, clean up after it.
+	logout.write("\n")
+	# Finally, note how long we've been running for.
+	logout.write("Flash read in {0}.".format(str(timedelta(seconds=(endtime - starttime)))))
+
+	port.close()
+	output.flush()
+
+def progress_cli(currentblock, maximumblock):
+	sys.stdout.write("\rSaving: {0:3.2f}%".format((float(currentblock) / float(maximumblock)) * 100))
+	sys.stdout.flush()
+
+def main():
+	parser = argparse.ArgumentParser()
+	parser.add_argument("-o", "--output", type=str, help="The output file to save the log to.")
+	parser.add_argument("device", type=str, help="Your goTenna TTY device, often /dev/ttyACM0.")
+	args = parser.parse_args()
+
+	logout = sys.stdout
+	output = sys.stdout
+
+	if args.output:
+		output = open(args.output, 'w')
+
+	try:
+		dump_eflash(args.device, logout, progress_cli, output)
+	except Exception as e:
+		raise e
+		sys.stderr.write(str(e) + "\n")
+		sys.exit(1)
+
+if __name__ == "__main__":
+	main()
