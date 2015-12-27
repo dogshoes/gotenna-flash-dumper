@@ -4,8 +4,29 @@ import re
 import binascii
 import sys
 
-pattern = re.compile(r"[0-9,a-f]{6}:\s([0-9,A-F]+)")
+def convert_eflash_log(input, output):
+	# The eflash contents in the log file will follow this format:
+	# 0044a0: AC49EE0A3A1037C000052212F084F805 
+	# 0044b0: 1C201C002D39D112F0BE0A3A1037D000 
+	# 0044c0: 04F9A34EA04B3521042201271F71B170 
+	# 0044d0: BB0A3A1037E000727003903570B56075 
+	# There will be other system messages interspersed, we want to ignore those.
+	pattern = re.compile(r"([0-9,a-f]{6}):\s([0-9,A-F]+)")
+	# Also keep track of the last block read, to prevent reading previous blocks.
+	last = 0
 
-for line in fileinput.input():
-	for match in pattern.finditer(line):
-		sys.stdout.write(binascii.unhexlify(match.group(1)))
+	for line in input:
+		for match in pattern.finditer(line):
+			# Convert the block from hex to binary and write it to output.
+			output.write(binascii.unhexlify(match.group(2)))
+
+			# Should end at 1feff0.  Prevent dumping out more than one eflash copies in a log.
+                        pos = int(match.group(1), 16)
+			if pos < last:
+				return
+
+			# Otherwise note the block that was just processed.
+			last = pos
+
+if __name__ == "__main__":
+	convert_eflash_log(fileinput.input(), sys.stdout)
