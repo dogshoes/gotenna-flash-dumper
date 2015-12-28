@@ -3,6 +3,7 @@ import fileinput
 import re
 import binascii
 import sys
+import argparse
 
 def convert_eflash_log(input, output):
 	# The eflash contents in the log file will follow this format:
@@ -28,5 +29,26 @@ def convert_eflash_log(input, output):
 			# Otherwise note the block that was just processed.
 			last = pos
 
+def main():
+	parser = argparse.ArgumentParser()
+	parser.add_argument("logfile", type=str, help="The log file containing the flash contents.")
+	parser.add_argument("output", type=str, help="The output file to save the binary flash contents to.")
+	args = parser.parse_args()
+
+	intput = None
+	output = None
+
+	if args.logfile == "-":
+		input = fileinput.input()
+	else:
+		input = open(args.logfile, 'r')
+
+	if args.output == "-":
+		output = sys.stdout
+	else:
+		output = open(args.output, 'w')
+
+	convert_eflash_log(input, output)
+
 if __name__ == "__main__":
-	convert_eflash_log(fileinput.input(), sys.stdout)
+	main()

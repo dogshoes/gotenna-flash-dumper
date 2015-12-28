@@ -38,5 +38,5 @@ Flash read in 0:21:59.210511.
 Next, use the `eflash-log-to-binary` program to parse the flash log and output a binary flash file which can then be inspected and/or disassembled.
 
 ```ShellSession
-[jhe@oxcart gotenna-eflash-dumper]$ ./eflash-log-to-binary < flash.log > flash.bin 
+[jhe@oxcart gotenna-eflash-dumper]$ ./eflash-log-to-binary flash.log flash.bin 
 ```
