@@ -2,7 +2,7 @@
 
 ### 0x00000
 
-First copy of the firmware.
+Firmware position A (first firmware).
 
 ### 0x81000
 
@@ -18,4 +18,4 @@ A copy of the serial number.
 
 ### 0x87000
 
-Second copy of the firmware.
+Firmware position B (second firmware).

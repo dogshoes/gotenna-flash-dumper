@@ -25,6 +25,8 @@ Connect your goTenna to your computer over USB and extend the antenna to turn it
 
 Use the `dump-gotenna-flash` program to instruct the goTenna to output the flash contents over the serial port.  The program achieves this by issuing the `read_eflash` goTenna cli command.  You'll end up with a cli session log containing the contents of the flash, along with several other diagnostic messages.
 
+The version reported may be incorrect.  00.21.04 reports as 00.15.04.
+
 ```ShellSession
 [jhe@oxcart gotenna-flash-dumper]$ sudo ./dump-gotenna-flash /dev/ttyACM0 flash.log
 Connected to serial port /dev/ttyACM0.
