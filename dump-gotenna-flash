@@ -60,11 +60,33 @@ def read_eflash_output(port, progress, output, logout):
 	if lastblock != 2093040:
 		logout.write("\nRead last block {0}, which might not be the final block (expected {1}).\n".format(lastblock, 2093040))
 
+def detect_gotenna(port):
+	# We're looking for a message that looks like this:
+	# [2154445-7952] FW Version : 00.15.04
+	fwpattern = re.compile(r"FW Version\s*\:\s*(\d+\.\d+\.\d+)", re.IGNORECASE)
+	# We may have to take a few tries at this, if the goTenna is busy.  Some times we may catch it printing diagnostic messages.
+	attempts = 3
+
+	while attempts > 0:
+		# Issue the version command to the cli.
+		port.write("\nversion\n")
+		lines = port.readlines()
+
+		for line in lines:
+			m = fwpattern.search(line)
+			if m:
+				return m.group(1)
+
+		attempts = attempts - 1
+
+	return None
+
 def dump_eflash(serialport, logout, progress, output):
-	port = serial.Serial(serialport, 115200, timeout=1)
+	port = serial.Serial(serialport, 9600, timeout=1)
 
 	logout.write("Connected to serial port {0}.\n".format(serialport))
-	logout.write("Checking for any ongoing processes on the goTenna... Please wait 5 seconds.\n")
+
+	logout.write("Waiting for idle on the goTenna... Please wait 5 seconds.\n")
 
 	if check_for_ongoing_process(port):
 		port.close()
@@ -72,6 +94,15 @@ def dump_eflash(serialport, logout, progress, output):
 		logout.write(message + "\n")
 		raise Exception(message)
 
+
+	fwversion = detect_gotenna(port)
+	if fwversion == None:
+		port.close()
+		message = "Failed to find goTenna connected to {0}.".format(serialport)
+		logout.write(message + "\n")
+		raise Exception(message)
+
+	logout.write("Found goTenna running firmware {0}.\n".format(fwversion))
 
 	logout.write("The goTenna is available and ready.  Sit back and relax, this will take a bit of time.\n")
 	logout.write("Dumping flash.  Do not disconnect or turn the goTenna off!\n")
