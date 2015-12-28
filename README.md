@@ -1,0 +1,41 @@
+## Overview
+
+This program will allow you to dump the flash chip on a [goTenna](http://www.gotenna.com/) connected to your computer.  The flash contains the firmware, diagnostic log, and message queue.
+
+Requires Python 2.7.5 and [pyserial 2](https://pypi.python.org/pypi/pyserial).  Tested on Fedora 20, and will likely work fine on later versions.
+
+## Connect your goTenna
+
+Connect your goTenna to your computer over USB and extend the antenna to turn it on.  It will expose a USB serial port.  Figure out what serial device it's exposing on your computer.
+
+```ShellSession
+[jhe@oxcart ~]$ dmesg | grep goTenna -a5
+[43446.128944] usb 2-2.1: new full-speed USB device number 20 using uhci_hcd
+[43446.234635] usb 2-2.1: New USB device found, idVendor=1fc9, idProduct=2047
+[43446.234643] usb 2-2.1: New USB device strings: Mfr=1, Product=2, SerialNumber=3
+[43446.234647] usb 2-2.1: Product: goTenna
+[43446.234656] usb 2-2.1: Manufacturer: goTenna, Inc
+[43446.234659] usb 2-2.1: SerialNumber: 123456789ABCDEF
+[43446.242217] cdc_acm 2-2.1:1.0: ttyACM0: USB ACM device
+```
+
+## Dump the flash
+
+Use the `dump-eflash` program to instruct the goTenna to output the flash contents over the serial port.  This is done by way of the `read_eflash` goTenna cli command.  You'll end up with a cli session log containing the contents of the flash, along with several other diagnostic messages.
+
+```ShellSession
+[jhe@oxcart gotenna-flash-dumper]$ sudo ./dump-eflash -o flash.log /dev/ttyACM0
+Connected to serial port /dev/ttyACM0.
+Checking for any ongoing processes on the goTenna... Please wait 5 seconds.
+The goTenna is available and ready.  Sit back and relax, this will take a bit of time.
+Dumping eflash.  Do not disconnect or turn the goTenna off!
+Saving: 97.38%
+```
+
+## Convert the flash log to a binary
+
+Next, use the `eflash-log-to-binary` program to parse the flash log and output a binary flash file which can then be inspected and/or disassembled.
+
+```ShellSession
+[jhe@oxcart gotenna-eflash-dumper]$ ./eflash-log-to-binary < flash.log > flash.bin 
+```
