@@ -4,6 +4,8 @@ This program will allow you to dump the flash chip on a [goTenna](http://www.got
 
 Requires Python 2.7.5 and [pyserial 2](https://pypi.python.org/pypi/pyserial).  Tested on Fedora 20, and will likely work fine on most any Linux distribution.
 
+Tested against goTenna firmware 00.15.04 and firmware 00.21.04, both versions work great.  goTennas are currently shipped from the factory running 00.15.04 and will be upgraded to 00.21.04 if you're using version 1.12 or later of the app.
+
 ## Connect your goTenna
 
 Connect your goTenna to your computer over USB and extend the antenna to turn it on.  It will expose a USB serial port.  Figure out what serial device it's exposing on your computer.
