@@ -18,7 +18,7 @@ def check_for_ongoing_process(port):
 	
 	return bytes > 2048
 
-def read_eflash_output(port, progress, output):
+def read_eflash_output(port, progress, output, logout):
 	lastreadcounter = 10
 	lastblock = 0
 	blockpattern = re.compile(r"([0-9,a-f]{6}):\s")
@@ -26,6 +26,7 @@ def read_eflash_output(port, progress, output):
 	# Initial progress: 0%
 	progress(0, 100)
 
+	# Issue the read_eflash command to the goTenna CLI.  This will begin the dump.
 	port.write("\nread_eflash\n")
 
 	while True:
@@ -46,12 +47,18 @@ def read_eflash_output(port, progress, output):
 		if lastreadcounter == 0:
 			break;
 
-		# Attempt to find a block number in the output.
-		m = blockpattern.match(block)
+		# Attempt to find the *last* block number in the output.
+		for m in blockpattern.finditer(block):
+			pass
+
 		if m:
 			lastblock = int(m.group(1), 16)
 			# 2093040 (0x1feff0) is what I've observed the last block to be dumped.
 			progress(lastblock, 2093040)
+
+	# Alert if we might not have a complete dump.
+	if lastblock != 2093040:
+		logout.write("\nRead last block {0}, which might not be the final block (expected {1}).\n".format(lastblock, 2093040))
 
 def dump_eflash(serialport, logout, progress, output):
 	port = serial.Serial(serialport, 115200, timeout=1)
@@ -71,14 +78,14 @@ def dump_eflash(serialport, logout, progress, output):
 
 	starttime = time.time()
 
-	read_eflash_output(port, progress, output)
+	read_eflash_output(port, progress, output, logout)
 	
 	endtime = time.time()
 
 	# The progress_cli doesn't add \n, clean up after it.
 	logout.write("\n")
 	# Finally, note how long we've been running for.
-	logout.write("Flash read in {0}.".format(str(timedelta(seconds=(endtime - starttime)))))
+	logout.write("Flash read in {0}.\n".format(str(timedelta(seconds=(endtime - starttime)))))
 
 	port.close()
 	output.flush()
@@ -89,14 +96,14 @@ def progress_cli(currentblock, maximumblock):
 
 def main():
 	parser = argparse.ArgumentParser()
-	parser.add_argument("-o", "--output", type=str, help="The output file to save the log to.")
 	parser.add_argument("device", type=str, help="Your goTenna TTY device, often /dev/ttyACM0.")
+	parser.add_argument("output", type=str, help="The output file to save the log to.")
 	args = parser.parse_args()
 
 	logout = sys.stdout
 	output = sys.stdout
 
-	if args.output:
+	if args.output != "-":
 		output = open(args.output, 'w')
 
 	try:
