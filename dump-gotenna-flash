@@ -68,13 +68,13 @@ def dump_eflash(serialport, logout, progress, output):
 
 	if check_for_ongoing_process(port):
 		port.close()
-		message = "The goTenna currently busy.  Cannot dump eflash.  Turn the goTenna off and on again."
+		message = "The goTenna currently busy.  Cannot dump flash.  Turn the goTenna off and on again."
 		logout.write(message + "\n")
 		raise Exception(message)
 
 
 	logout.write("The goTenna is available and ready.  Sit back and relax, this will take a bit of time.\n")
-	logout.write("Dumping eflash.  Do not disconnect or turn the goTenna off!\n")
+	logout.write("Dumping flash.  Do not disconnect or turn the goTenna off!\n")
 
 	starttime = time.time()
 

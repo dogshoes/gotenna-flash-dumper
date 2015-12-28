@@ -21,22 +21,22 @@ Connect your goTenna to your computer over USB and extend the antenna to turn it
 
 ## Dump the flash
 
-Use the `dump-eflash` program to instruct the goTenna to output the flash contents over the serial port.  The program achieves this by issuing the `read_eflash` goTenna cli command.  You'll end up with a cli session log containing the contents of the flash, along with several other diagnostic messages.
+Use the `dump-gotenna-flash` program to instruct the goTenna to output the flash contents over the serial port.  The program achieves this by issuing the `read_eflash` goTenna cli command.  You'll end up with a cli session log containing the contents of the flash, along with several other diagnostic messages.
 
 ```ShellSession
-[jhe@oxcart gotenna-flash-dumper]$ sudo ./dump-eflash /dev/ttyACM0 flash.log
+[jhe@oxcart gotenna-flash-dumper]$ sudo ./dump-gotenna-flash /dev/ttyACM0 flash.log
 Connected to serial port /dev/ttyACM0.
 Checking for any ongoing processes on the goTenna... Please wait 5 seconds.
 The goTenna is available and ready.  Sit back and relax, this will take a bit of time.
-Dumping eflash.  Do not disconnect or turn the goTenna off!
+Dumping flash.  Do not disconnect or turn the goTenna off!
 Saving: 100.00%
 Flash read in 0:21:59.210511.
 ```
 
 ## Convert the flash log to a binary
 
-Next, use the `eflash-log-to-binary` program to parse the flash log and output a binary flash file which can then be inspected and/or disassembled.
+Next, use the `flash-log-to-binary` program to parse the flash log and output a binary flash file which can then be inspected and/or disassembled.
 
 ```ShellSession
-[jhe@oxcart gotenna-eflash-dumper]$ ./eflash-log-to-binary flash.log flash.bin 
+[jhe@oxcart gotenna-flash-dumper]$ ./flash-log-to-binary flash.log flash.bin 
 ```
