@@ -26,7 +26,8 @@ Use the `dump-gotenna-flash` program to instruct the goTenna to output the flash
 ```ShellSession
 [jhe@oxcart gotenna-flash-dumper]$ sudo ./dump-gotenna-flash /dev/ttyACM0 flash.log
 Connected to serial port /dev/ttyACM0.
-Checking for any ongoing processes on the goTenna... Please wait 5 seconds.
+Waiting for idle on the goTenna... Please wait 5 seconds.
+Found goTenna running firmware 00.15.04.
 The goTenna is available and ready.  Sit back and relax, this will take a bit of time.
 Dumping flash.  Do not disconnect or turn the goTenna off!
 Saving: 100.00%
