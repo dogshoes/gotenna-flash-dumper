@@ -5,7 +5,7 @@ import binascii
 import sys
 import argparse
 
-def convert_eflash_log(input, output):
+def convert_eflash_log(input, output, errout):
 	# The eflash contents in the log file will follow this format:
 	# 0044a0: AC49EE0A3A1037C000052212F084F805 
 	# 0044b0: 1C201C002D39D112F0BE0A3A1037D000 
@@ -19,7 +19,11 @@ def convert_eflash_log(input, output):
 	for line in input:
 		for match in pattern.finditer(line):
 			# Convert the block from hex to binary and write it to output.
-			output.write(binascii.unhexlify(match.group(2)))
+			try:
+				output.write(binascii.unhexlify(match.group(2)))
+			except TypeError:
+				errout.write("Encountered something unexpected: {0}!".format(line))
+				raise
 
 			# Should end at 1feff0.  Prevent dumping out more than one eflash copies in a log.
                         pos = int(match.group(1), 16)
@@ -48,7 +52,7 @@ def main():
 	else:
 		output = open(args.output, 'w')
 
-	convert_eflash_log(input, output)
+	convert_eflash_log(input, output, sys.stderr)
 
 if __name__ == "__main__":
 	main()
