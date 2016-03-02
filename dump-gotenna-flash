@@ -30,8 +30,8 @@ def read_eflash_output(port, progress, output, logout):
 	port.write("\nread_eflash\n")
 
 	while True:
-		# Read a block of data up to 2048 bytes, or up to the one second timeout.
-		block = port.read(2048)
+		# Read a block of data up to 4k bytes, or up to the one second timeout.
+		block = port.read(4096)
 		# Write that block of data to our output file.
 		output.write(block)
 
