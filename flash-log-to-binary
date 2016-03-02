@@ -18,20 +18,33 @@ def convert_eflash_log(input, output, errout):
 
 	for line in input:
 		for match in pattern.finditer(line):
+			# Grab the block position.
+                        pos = int(match.group(1), 16)
+
+			# Prevent going backwards.  This can happen if more than one copy of the flash exist in the log.
+			if pos < last:
+				return
+
+			# This is fatal, we should not have an unaligned position.
+			if pos % 0x10 != 0:
+				raise Exception("Encountered position not aligned to 0x10.")
+
+			# This happens... Report the issue, not fatal in certain circumstances.
+			if last != 0 and last + 0x10 != pos:
+				errout.write("Not all blocks present in provided log.  Blocks skipped from {0} to {1}, gap of {2} blocks.\n".format(last, pos, ((pos - last) / 0x10)))
+
+			# Now that everything's been checked, note the block that was just processed.
+			last = pos
+
+			# Even if we're missing a block ensure that we end up writing this block to the correct location.
+			output.seek(pos)
+
 			# Convert the block from hex to binary and write it to output.
 			try:
 				output.write(binascii.unhexlify(match.group(2)))
 			except TypeError:
 				errout.write("Encountered something unexpected: {0}!".format(line))
 				raise
-
-			# Should end at 1feff0.  Prevent dumping out more than one eflash copies in a log.
-                        pos = int(match.group(1), 16)
-			if pos < last:
-				return
-
-			# Otherwise note the block that was just processed.
-			last = pos
 
 def main():
 	parser = argparse.ArgumentParser()
