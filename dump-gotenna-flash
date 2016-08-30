@@ -122,7 +122,7 @@ def dump_eflash(serialport, logout, progress, output):
 	output.flush()
 
 def progress_cli(currentblock, maximumblock):
-	sys.stdout.write("\rSaving: {0:3.2f}%".format((float(currentblock) / float(maximumblock)) * 100))
+	sys.stdout.write("\rSaving: {:3.2%}".format((float(currentblock) / float(maximumblock))))
 	sys.stdout.flush()
 
 def main():
