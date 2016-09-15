@@ -45,3 +45,19 @@ Next, use the `flash-log-to-binary` program to parse the flash log and output a 
 ```ShellSession
 [jhe@oxcart gotenna-flash-dumper]$ ./flash-log-to-binary flash.log flash.bin 
 ```
+
+## Break the flash dump into individual blocks
+
+The `block-exploder` utility can be used to separate the monolithic flash dump in to individual blocks.  Useful for looking at one block at a time in a hex editor.
+
+```ShellSession
+[jhe@oxcart gotenna-flash-dumper]$ mkdir blocks
+[jhe@oxcart gotenna-flash-dumper]$ ./flash-log-to-binary --skip-empty flash.bin blocks 
+[jhe@oxcart gotenna-flash-dumper]$ ls blocks
+000.bin  029.bin  058.bin  131.bin  161.bin  227.bin  256.bin  285.bin  314.bin
+001.bin  030.bin  059.bin  133.bin  162.bin  228.bin  257.bin  286.bin  315.bin
+002.bin  031.bin  060.bin  134.bin  163.bin  229.bin  258.bin  287.bin  316.bin
+003.bin  032.bin  061.bin  135.bin  164.bin  230.bin  259.bin  288.bin  317.bin
+004.bin  033.bin  062.bin  136.bin  165.bin  231.bin  260.bin  289.bin  318.bin
+...
+```
