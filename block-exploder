@@ -1,0 +1,67 @@
+#!/usr/bin/python
+import fileinput
+import sys
+import argparse
+from os import path
+import os
+
+def explode_eflash_blocks(input, output, skipempty, overwrite, errout):
+	input.seek(0)
+	
+	if not path.exists(output):
+		os.mkdir(output)
+	
+	index = 0
+	
+	outputdir = path.abspath(output)
+	
+	while True:
+		blockfilepath = path.join(outputdir, "{0:03d}.bin".format(index)) # Will pad file names out with leading zeros so they list nicely.
+		index = index + 1
+	    
+		# Don't overwrite existing block files, unless told to.
+		if not overwrite and path.isfile(blockfilepath):
+			errout.write("Block file already exists: {0}.  Skipping.\n".format(blockfilepath))
+		
+		block = input.read(4096) # Blocks are 0x1000 (4096 bytes) long
+		if not block:
+			break
+		
+		if len(block) != 4096:
+			errout.write("Block {0} is not the expected length of 4096 bytes.  Incomplete input file?".format(blockfilepath))
+		
+		# Check to see if we have an empty region of flash memory, if we're avoiding those.
+		if skipempty:
+			hasnonempty = False
+			for b in block:
+				if b != "\xFF":
+					hasnonempty = True
+					break
+			
+			if not hasnonempty:
+				continue
+		
+		with open(blockfilepath, "w") as f:
+			f.write(block)
+			f.flush()
+			f.close()
+
+def main():
+	parser = argparse.ArgumentParser(description="A small utility to break a goTenna flash dump into individual blocks for easier analysis.")
+	parser.add_argument("flashbin", type=str, help="A binary dump of the goTenna flash.")
+	parser.add_argument("output", type=str, help="The name of the directory to store the flash blocks to.")
+	parser.add_argument("--skip-empty", dest="skipempty", action="store_true", help="Do not save blocks that are all 0xFF.")
+	parser.add_argument("--overwrite", dest="overwrite", action="store_true", help="Overwrite existing output blocks.")
+	args = parser.parse_args()
+
+	intput = None
+
+	if args.flashbin == "-":
+		input = fileinput.input()
+	else:
+		input = open(args.flashbin, "r")
+
+	explode_eflash_blocks(input, args.output, args.skipempty, args.overwrite, sys.stderr)
+
+if __name__ == "__main__":
+	main()
