@@ -6,10 +6,6 @@ Firmware seems to be made of blocks, each 4096 bytes long (0x1000).  Interesting
 
 Firmware position A (first firmware / OEM firmware).
 
-### 0x0258E7
-
-Interesting pattern.  Something to look at.  Is not block aligned!  Might just be filler.
-
 ### 0x081000 (1 block)
 
 0x01 0x02 x03 0x04
@@ -22,21 +18,41 @@ Ten byte serial number.
 
 A copy of the serial number.
 
+### 0x085000 (1 block)
+
+Some sort of key?  51 bytes of information.
+
+### 0x086000 (1 block)
+
+GID table?
+
 ### 0x087000 (55 blocks)
 
-Firmware position B (second firmware).
+Firmware position B (field upgraded firmware).
 
 ### 0x0DC000 (1 block)
 
-Firmware position B offset?
+Firmware position B offset?  Possibly contains other information.
 
 ### 0x0DD000 (1 block)
 
-Firmware position B offset copy?
+Copy of 0x0DC000 (firmware position B offset)?
 
 ### 0x0DE000 (73 blocks)
 
-Log / event data, highly stuctured.
+Log / event data, highly structured.
+
+### 0x150000
+
+Some sort of data structure.  Diagnostics?
+
+### 0x152000
+
+Some sort of data structure.
+
+### 0x153000
+
+Emergency message templates?
 
 ### 0x19A000 (10 blocks)
 
