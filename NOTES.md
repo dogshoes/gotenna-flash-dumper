@@ -1,67 +1,67 @@
-## Interesting firmware offsets
+## Flash memory layout
 
-Firmware seems to be made of blocks, each 4096 bytes long (0x1000).  Interesting things will be aligned along these boundries.  The flash is 511 blocks long.
+The goTenna flash memory is made up of 4096 byte chunks, or "blocks", along which data is aligned.  511 of these blocks can be read from the goTenna device, one block short of the theoretical 512 4096k blocks contained in the 16 Mbit onboard flash.
 
-### 0x000000 (55 blocks)
+### Block 0 to 84
 
 Firmware position A (first firmware / OEM firmware).
 
-### 0x081000 (1 block)
+### Block 129
 
-0x01 0x02 x03 0x04
+Magic constant?  0x01020304
 
-### 0x082000 (1 block)
+### Block 130
 
 Ten byte serial number.
 
-### 0x083000 (1 block)
+### Block 131
 
-A copy of the serial number.
+A duplicate of block 130.
 
-### 0x085000 (1 block)
+### Block 133
 
 Some sort of key?  51 bytes of information.
 
-### 0x086000 (1 block)
+### Block 134
 
-GID table?
+Appears to be the GID table.
 
-### 0x087000 (55 blocks)
+### Block 135 to 182
 
-Firmware position B (field upgraded firmware).
+Firmware position B (field upgraded firmware).  Real flash reservation is likely longer than this, perhaps up to block 220.
 
-### 0x0DC000 (1 block)
+### Block 220
 
-Firmware position B offset?  Possibly contains other information.
+Firmware position B offset?  Possibly contains other information?
 
-### 0x0DD000 (1 block)
+### Block 221
 
-Copy of 0x0DC000 (firmware position B offset)?
+A duplicate of block 221.
 
-### 0x0DE000 (73 blocks)
+### Block 222 to 335
 
 Log / event data, highly structured.
 
-### 0x150000
+### Block 336
 
-Some sort of data structure.  Diagnostics?
+Some sort of data structure.  Diagnostics?  Readable text included.
 
-### 0x152000
+### Block 337
 
 Some sort of data structure.
 
-### 0x153000
+### Block 338
+
+A duplicate of block 337.
+
+### Block 339 to 340
 
 Emergency message templates?
 
-### 0x19A000 (10 blocks)
-
-Some structured data.
-
-### 0x1B1000 (1 block)
+### Block 433
 
 Diagnostic data (block 433)
 
-### 0x1B2000 (1 block)
+### Block 434
 
 Diagnostic data (block 434)
