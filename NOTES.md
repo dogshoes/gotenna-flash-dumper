@@ -12,7 +12,7 @@ Magic constant?  0x01020304
 
 ### Block 130
 
-Ten byte serial number.
+Ten byte serial number.  Also likely contains the device type, hardware version.  May also contain the "bluetooth flag", although not entirely sure about that or what bearing that has.  The "dev_info" command includes these fields.
 
 ### Block 131
 
@@ -20,7 +20,7 @@ A duplicate of block 130.
 
 ### Block 133
 
-Some sort of key?  51 bytes of information.
+Some sort of key?  Does not match what the goTenna claims is its public key.  51 bytes of information.  Value changes when the GID and public key are regenerated.
 
 ### Block 134
 
@@ -28,23 +28,19 @@ Appears to be the GID table.
 
 ### Block 135 to 182
 
-Firmware position B (field upgraded firmware).  Real flash reservation is likely longer than this, perhaps up to block 220.
+Firmware position B (field upgraded firmware).  Real flash reservation is likely longer than this, perhaps up to block 219.
 
 ### Block 220
 
-Firmware position B offset?  Possibly contains other information?
+Some sort of data structure.
 
 ### Block 221
 
 A duplicate of block 221.
 
-### Block 222 to 335
+### Block 222 to 336
 
-Log / event data, highly structured.
-
-### Block 336
-
-Some sort of data structure.  Diagnostics?  Readable text included.
+Log / event data, highly structured.  This data is output via the "getlog" command.
 
 ### Block 337
 
@@ -64,4 +60,4 @@ Diagnostic data (block 433)
 
 ### Block 434
 
-Diagnostic data (block 434)
+Diagnostic data (block 434).  Duplicate of block 433?
