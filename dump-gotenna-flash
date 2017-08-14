@@ -1,161 +1,162 @@
 #!/usr/bin/python
 
-import serial
+from datetime import timedelta
 import sys
 import time
 import argparse
 import re
-from datetime import timedelta
+import serial
 
 def check_for_ongoing_process(port):
-	bytes = 0
-	end = time.time() + 5
+    """Check to see whether the goTenna is busy."""
+    bytecount = 0
+    end = time.time() + 5
 
-	# We can check for ongoing progress by seeing if we see more than 2k of bytes in five seconds.
-	while time.time() < end and bytes <= 2048:
-		read = port.read(1)
-		bytes = bytes + len(read)
-	
-	return bytes > 2048
+    # We can check for ongoing progress by seeing if we see more than 2k of bytes in five seconds.
+    while time.time() < end and bytecount <= 2048:
+        read = port.read(1)
+        bytecount = bytecount + len(read)
+
+    return bytecount > 2048
 
 def read_eflash_output(port, progress, output, logout):
-	lastreadcounter = 10
-	lastblock = 0
-	bigbuffers = 0
-	blockpattern = re.compile(r"([0-9,a-f]{6}):\s")
+    """Perform the read loop over the serial port and save all read data."""
+    lastreadcounter = 10
+    lastblock = 0
+    bigbuffers = 0
+    blockpattern = re.compile(r"([0-9,a-f]{6}):\s")
 
-	# Initial progress: 0%
-	progress(0, 100)
+    # Initial progress: 0%
+    progress(0, 100)
 
-	# Issue the read_eflash command to the goTenna CLI.  This will begin the dump.
-	port.write("\nread_eflash\n")
+    # Issue the read_eflash command to the goTenna CLI.  This will begin the dump.
+    port.write("\nread_eflash\n")
 
-	while port.isOpen():
-		# Read a block of data up to 4k bytes, or up to the one second timeout.
-		size = 4096
-		waiting = port.inWaiting()
+    while port.isOpen():
+        # Read a block of data up to 4k bytes, or up to the one second timeout.
+        size = 4096
+        waiting = port.inWaiting()
 
-		if waiting > size:
-			size = waiting
-			bigbuffers = bigbuffers + 1
+        if waiting > size:
+            size = waiting
+            bigbuffers = bigbuffers + 1
 
-		block = port.read(size)
-		# Write that block of data to our output file.
-		output.write(block)
+        block = port.read(size)
+        # Write that block of data to our output file.
+        output.write(block)
 
-		# Keep the serial connection alive to the goTenna.  Otherwise "USB Asleep".
-		port.write([0x00])
+        # Keep the serial connection alive to the goTenna.  Otherwise "USB Asleep".
+        port.write([0x00])
 
-		# The read_eflash command will send heaps of data our way.
-		# If we end up with a block smaller than expected we likely ran in to our timeout.
-		if block.__len__() < 2048:
-			lastreadcounter = lastreadcounter - 1
+        # The read_eflash command will send heaps of data our way.
+        # If we end up with a block smaller than expected we likely ran in to our timeout.
+        if block.__len__() < 2048:
+            lastreadcounter = lastreadcounter - 1
 
-		# If we're all out of timeout chances, abort reading since we don't have any more eflash to read.
-		if lastreadcounter == 0:
-			break
+        # If we're all out of timeout chances, abort reading since we don't have any more eflash to read.
+        if lastreadcounter == 0:
+            break
 
-		# Attempt to find the *last* block number in the output.
-		m = None
-		for m in blockpattern.finditer(block):
-			pass
+        # Attempt to find the *last* block number in the output.
+        match = None
+        for match in blockpattern.finditer(block):
+            pass
 
-		if m:
-			lastblock = int(m.group(1), 16)
-			# 2093040 (0x1feff0) is what I've observed the last block to be dumped.
-			progress(lastblock, 2093040)
-	
-	# Alert if we might not have a complete dump.
-	if lastblock != 2093040:
-		logout.write("\nRead last block {0}, which might not be the final block (expected {1}).\n".format(lastblock, 2093040))
-	
-	# Something educational about how quickly data is being sent versus consumed.
-	if bigbuffers > 0:
-		logout.write("Found {0} bigbuffers while reading from the serial port.\n".format(bigbuffers))
+        if match:
+            lastblock = int(match.group(1), 16)
+            # 2093040 (0x1feff0) is what I've observed the last block to be dumped.
+            progress(lastblock, 2093040)
+
+    # Alert if we might not have a complete dump.
+    if lastblock != 2093040:
+        logout.write("\nRead last block {0}, which might not be the final block (expected {1}).\n".format(lastblock, 2093040))
+
+    # Something educational about how quickly data is being sent versus consumed.
+    if bigbuffers > 0:
+        logout.write("Found {0} bigbuffers while reading from the serial port.\n".format(bigbuffers))
 
 def detect_gotenna(port):
-	# We're looking for a message that looks like this:
-	# [2154445-7952] FW Version : 00.15.04
-	fwpattern = re.compile(r"FW Version\s*\:\s*(\d+\.\d+\.\d+)", re.IGNORECASE)
-	# We may have to take a few tries at this, if the goTenna is busy.  Some times we may catch it printing diagnostic messages.
-	attempts = 3
+    """Detect whether a goTenna is connected to the serial port."""
+    # We're looking for a message that looks like this:
+    # [2154445-7952] FW Version : 00.15.04
+    fwpattern = re.compile(r"FW Version\s*\:\s*(\d+\.\d+\.\d+)", re.IGNORECASE)
+    # We may have to take a few tries at this, if the goTenna is busy.  Some times we may catch it printing diagnostic messages.
+    attempts = 3
 
-	while attempts > 0:
-		# Issue the version command to the cli.
-		port.write("\nversion\n")
-		lines = port.readlines()
+    while attempts > 0:
+        # Issue the version command to the cli.
+        port.write("\nversion\n")
+        lines = port.readlines()
 
-		for line in lines:
-			m = fwpattern.search(line)
-			if m:
-				return m.group(1)
+        for line in lines:
+            match = fwpattern.search(line)
+            if match:
+                return match.group(1)
 
-		attempts = attempts - 1
+        attempts = attempts - 1
 
-	return None
+    return None
 
 def dump_eflash(serialport, logout, progress, output):
-	port = serial.Serial(serialport, 9600, timeout=1)
+    """Check the serial port for readiness and execute the flash dump."""
+    port = serial.Serial(serialport, 9600, timeout=1)
 
-	logout.write("Connected to serial port {0}.\n".format(serialport))
+    logout.write("Connected to serial port {0}.\n".format(serialport))
+    logout.write("Waiting for idle on the goTenna... Please wait 5 seconds.\n")
 
-	logout.write("Waiting for idle on the goTenna... Please wait 5 seconds.\n")
+    if check_for_ongoing_process(port):
+        port.close()
+        message = "The goTenna currently busy.  Cannot dump flash.  Turn the goTenna off and on again."
+        logout.write(message + "\n")
+        raise Exception(message)
 
-	if check_for_ongoing_process(port):
-		port.close()
-		message = "The goTenna currently busy.  Cannot dump flash.  Turn the goTenna off and on again."
-		logout.write(message + "\n")
-		raise Exception(message)
+    fwversion = detect_gotenna(port)
+    if fwversion is None:
+        port.close()
+        message = "Failed to find goTenna connected to {0}.".format(serialport)
+        logout.write(message + "\n")
+        raise Exception(message)
 
+    logout.write("Found goTenna running firmware {0}.\n".format(fwversion))
 
-	fwversion = detect_gotenna(port)
-	if fwversion == None:
-		port.close()
-		message = "Failed to find goTenna connected to {0}.".format(serialport)
-		logout.write(message + "\n")
-		raise Exception(message)
+    logout.write("The goTenna is available and ready.  Sit back and relax, this will take a bit of time.\n")
+    logout.write("Dumping flash.  Do not disconnect or turn the goTenna off!\n")
 
-	logout.write("Found goTenna running firmware {0}.\n".format(fwversion))
+    starttime = time.time()
+    read_eflash_output(port, progress, output, logout)
+    endtime = time.time()
 
-	logout.write("The goTenna is available and ready.  Sit back and relax, this will take a bit of time.\n")
-	logout.write("Dumping flash.  Do not disconnect or turn the goTenna off!\n")
+    # The progress_cli doesn't add \n, clean up after it.
+    logout.write("\n")
+    # Finally, note how long we've been running for.
+    logout.write("Flash read in {0}.\n".format(str(timedelta(seconds=(endtime - starttime)))))
 
-	starttime = time.time()
-
-	read_eflash_output(port, progress, output, logout)
-	
-	endtime = time.time()
-
-	# The progress_cli doesn't add \n, clean up after it.
-	logout.write("\n")
-	# Finally, note how long we've been running for.
-	logout.write("Flash read in {0}.\n".format(str(timedelta(seconds=(endtime - starttime)))))
-
-	port.close()
-	output.flush()
+    port.close()
+    output.flush()
 
 def progress_cli(currentblock, maximumblock):
-	sys.stdout.write("\rSaving: {:3.2%}".format((float(currentblock) / float(maximumblock))))
-	sys.stdout.flush()
+    """Update the progress readout on the CLI during the dump operation."""
+    sys.stdout.write("\rSaving: {:3.2%}".format((float(currentblock) / float(maximumblock))))
+    sys.stdout.flush()
 
 def main():
-	parser = argparse.ArgumentParser()
-	parser.add_argument("device", type=str, help="Your goTenna TTY device, often /dev/ttyACM0.")
-	parser.add_argument("output", type=str, help="The output file to save the log to.")
-	args = parser.parse_args()
+    """Main entrypoint for the flash dumping utility, handles CLI options and execution."""
+    parser = argparse.ArgumentParser()
+    parser.add_argument("device", type=str, help="Your goTenna TTY device, often /dev/ttyACM0.")
+    parser.add_argument("output", type=str, help="The output file to save the log to.")
+    args = parser.parse_args()
 
-	logout = sys.stdout
-	output = sys.stdout
+    logout = sys.stdout
+    output = sys.stdout
 
-	if args.output != "-":
-		output = open(args.output, 'w')
+    if args.output != "-":
+        output = open(args.output, 'w')
 
-	try:
-		dump_eflash(args.device, logout, progress_cli, output)
-	except Exception as e:
-		raise e
-		sys.stderr.write(str(e) + "\n")
-		sys.exit(1)
+    try:
+        dump_eflash(args.device, logout, progress_cli, output)
+    except Exception as exception:
+        sys.stderr.write(str(exception) + "\n")
+        sys.exit(1)
 
 if __name__ == "__main__":
-	main()
+    main()

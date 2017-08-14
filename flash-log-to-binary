@@ -5,67 +5,69 @@ import binascii
 import sys
 import argparse
 
-def convert_eflash_log(input, output, errout):
-	# The eflash contents in the log file will follow this format:
-	# 0044a0: AC49EE0A3A1037C000052212F084F805 
-	# 0044b0: 1C201C002D39D112F0BE0A3A1037D000 
-	# 0044c0: 04F9A34EA04B3521042201271F71B170 
-	# 0044d0: BB0A3A1037E000727003903570B56075 
-	# There will be other system messages interspersed, we want to ignore those.
-	pattern = re.compile(r"([0-9,a-f]{6}):\s([0-9,A-F]+)")
-	# Also keep track of the last block read, to prevent reading previous blocks.
-	last = 0
+def convert_eflash_log(inputfile, outputfile, errout):
+    """Convert an input gotenna dump_eflash session log file in to a binary of the flash content."""
+    # The eflash contents in the log file will follow this format:
+    # 0044a0: AC49EE0A3A1037C000052212F084F805
+    # 0044b0: 1C201C002D39D112F0BE0A3A1037D000
+    # 0044c0: 04F9A34EA04B3521042201271F71B170
+    # 0044d0: BB0A3A1037E000727003903570B56075
+    # There will be other system messages interspersed, we want to ignore those.
+    pattern = re.compile(r"([0-9,a-f]{6}):\s([0-9,A-F]+)")
+    # Also keep track of the last block read, to prevent reading previous blocks.
+    last = 0
 
-	for line in input:
-		for match in pattern.finditer(line):
-			# Grab the block position.
-                        pos = int(match.group(1), 16)
+    for line in inputfile:
+        for match in pattern.finditer(line):
+            # Grab the block position.
+            pos = int(match.group(1), 16)
 
-			# Prevent going backwards.  This can happen if more than one copy of the flash exist in the log.
-			if pos < last:
-				return
+            # Prevent going backwards.  This can happen if more than one copy of the flash exist in the log.
+            if pos < last:
+                return
 
-			# This is fatal, we should not have an unaligned position.
-			if pos % 0x10 != 0:
-				raise Exception("Encountered position not aligned to 0x10.")
+            # This is fatal, we should not have an unaligned position.
+            if pos % 0x10 != 0:
+                raise Exception("Encountered position not aligned to 0x10.")
 
-			# This happens... Report the issue, not fatal in certain circumstances.
-			if last != 0 and last + 0x10 != pos:
-				errout.write("Not all blocks present in provided log.  Blocks skipped from {0} to {1}, gap of {2} blocks.\n".format(last, pos, ((pos - last) / 0x10)))
+            # This happens... Report the issue, not fatal in certain circumstances.
+            if last != 0 and last + 0x10 != pos:
+                errout.write("Not all blocks present in provided log.  Blocks skipped from {0} to {1}, gap of {2} blocks.\n".format(last, pos, ((pos - last) / 0x10)))
 
-			# Now that everything's been checked, note the block that was just processed.
-			last = pos
+            # Now that everything's been checked, note the block that was just processed.
+            last = pos
 
-			# Even if we're missing a block ensure that we end up writing this block to the correct location.
-			output.seek(pos)
+            # Even if we're missing a block ensure that we end up writing this block to the correct location.
+            outputfile.seek(pos)
 
-			# Convert the block from hex to binary and write it to output.
-			try:
-				output.write(binascii.unhexlify(match.group(2)))
-			except TypeError:
-				errout.write("Encountered something unexpected: {0}!".format(line))
-				raise
+            # Convert the block from hex to binary and write it to output.
+            try:
+                outputfile.write(binascii.unhexlify(match.group(2)))
+            except TypeError:
+                errout.write("Encountered something unexpected: {0}!".format(line))
+                raise
 
 def main():
-	parser = argparse.ArgumentParser()
-	parser.add_argument("logfile", type=str, help="The log file containing the flash contents.")
-	parser.add_argument("output", type=str, help="The output file to save the binary flash contents to.")
-	args = parser.parse_args()
+    """Main entrypoint for the log to binary utility, handles CLI options and execution."""
+    parser = argparse.ArgumentParser()
+    parser.add_argument("logfile", type=str, help="The log file containing the flash contents.")
+    parser.add_argument("output", type=str, help="The output file to save the binary flash contents to.")
+    args = parser.parse_args()
 
-	intput = None
-	output = None
+    intputfile = None
+    outputfile = None
 
-	if args.logfile == "-":
-		input = fileinput.input()
-	else:
-		input = open(args.logfile, 'r')
+    if args.logfile == "-":
+        intputfile = fileinput.input()
+    else:
+        intputfile = open(args.logfile, 'r')
 
-	if args.output == "-":
-		output = sys.stdout
-	else:
-		output = open(args.output, 'w')
+    if args.output == "-":
+        outputfile = sys.stdout
+    else:
+        outputfile = open(args.output, 'w')
 
-	convert_eflash_log(input, output, sys.stderr)
+    convert_eflash_log(intputfile, outputfile, sys.stderr)
 
 if __name__ == "__main__":
-	main()
+    main()
