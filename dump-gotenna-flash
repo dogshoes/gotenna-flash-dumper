@@ -21,6 +21,7 @@ def check_for_ongoing_process(port):
 def read_eflash_output(port, progress, output, logout):
 	lastreadcounter = 10
 	lastblock = 0
+	bigbuffers = 0
 	blockpattern = re.compile(r"([0-9,a-f]{6}):\s")
 
 	# Initial progress: 0%
@@ -29,14 +30,21 @@ def read_eflash_output(port, progress, output, logout):
 	# Issue the read_eflash command to the goTenna CLI.  This will begin the dump.
 	port.write("\nread_eflash\n")
 
-	while True:
+	while port.isOpen():
 		# Read a block of data up to 4k bytes, or up to the one second timeout.
-		block = port.read(4096)
+		size = 4096
+		waiting = port.inWaiting()
+
+		if waiting > size:
+			size = waiting
+			bigbuffers = bigbuffers + 1
+
+		block = port.read(size)
 		# Write that block of data to our output file.
 		output.write(block)
 
 		# Keep the serial connection alive to the goTenna.  Otherwise "USB Asleep".
-		port.write("\r\n")
+		port.write([0x00])
 
 		# The read_eflash command will send heaps of data our way.
 		# If we end up with a block smaller than expected we likely ran in to our timeout.
@@ -45,9 +53,10 @@ def read_eflash_output(port, progress, output, logout):
 
 		# If we're all out of timeout chances, abort reading since we don't have any more eflash to read.
 		if lastreadcounter == 0:
-			break;
+			break
 
 		# Attempt to find the *last* block number in the output.
+		m = None
 		for m in blockpattern.finditer(block):
 			pass
 
@@ -55,10 +64,14 @@ def read_eflash_output(port, progress, output, logout):
 			lastblock = int(m.group(1), 16)
 			# 2093040 (0x1feff0) is what I've observed the last block to be dumped.
 			progress(lastblock, 2093040)
-
+	
 	# Alert if we might not have a complete dump.
 	if lastblock != 2093040:
 		logout.write("\nRead last block {0}, which might not be the final block (expected {1}).\n".format(lastblock, 2093040))
+	
+	# Something educational about how quickly data is being sent versus consumed.
+	if bigbuffers > 0:
+		logout.write("Found {0} bigbuffers while reading from the serial port.\n".format(bigbuffers))
 
 def detect_gotenna(port):
 	# We're looking for a message that looks like this:
