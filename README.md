@@ -52,7 +52,7 @@ The `block-exploder` utility can be used to separate the monolithic flash dump i
 
 ```ShellSession
 [jhe@oxcart gotenna-flash-dumper]$ mkdir blocks
-[jhe@oxcart gotenna-flash-dumper]$ ./flash-log-to-binary --skip-empty flash.bin blocks 
+[jhe@oxcart gotenna-flash-dumper]$ ./block-exploder --skip-empty flash.bin blocks 
 [jhe@oxcart gotenna-flash-dumper]$ ls blocks
 000.bin  029.bin  058.bin  131.bin  161.bin  227.bin  256.bin  285.bin  314.bin
 001.bin  030.bin  059.bin  133.bin  162.bin  228.bin  257.bin  286.bin  315.bin
